@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AWS Cognito + Facebook Login JavaScript Example</title>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/x-icon" href="https://s3-ap-northeast-1.amazonaws.com/www.blackie1019.com/favicon.ico" />
+</head>
+<script src="https://sdk.amazonaws.com/js/aws-sdk-2.176.0.min.js"></script>
+<body>
+    <fb:login-button scope="public_profile,email" onlogin="FB.getLoginStatus(statusChangeCallback);"></fb:login-button>
+
+    <div id="status"></div>
+    <script>
+        AWS.config.region = 'ap-northeast-1';
+    
+        (function (d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) return;
+            js = d.createElement(s);
+            js.id = id;
+            js.src = "//connect.facebook.net/en_US/sdk.js";
+            fjs.parentNode.insertBefore(js, fjs);
+        }(document, 'script', 'facebook-jssdk'));
+    
+        window.fbAsyncInit = function () {
+            FB.init({
+                appId: '<fb app id>',
+                cookie: true,
+    
+                xfbml: true,
+                version: 'v2.11'
+            });
+            FB.getLoginStatus(statusChangeCallback);
+        };
+    
+    
+        function statusChangeCallback(response) {
+            console.log('statusChangeCallback', response);
+    
+            if (response.status === 'connected' && response.authResponse) {
+    
+                testAPI();
+    
+                AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+                    IdentityPoolId: '<aws cognito id>',
+                    Logins: {
+                        'graph.facebook.com': response.authResponse.accessToken
+                    }
+                });
+    
+                AWS.config.credentials.get(function (err) {
+                    if (err) return console.log("Error", err);
+                    console.log("Cognito Identity Id", AWS.config.credentials.identityId);
+                });
+    
+            } else if (response.status === 'not_authorized') {
+                document.getElementById('status').innerHTML = 'Please log into this app.';
+            } else {
+                document.getElementById('status').innerHTML = 'Please log into Facebook.';
+            }
+        }
+    
+    
+        function testAPI() {
+            console.log('Welcome!  Fetching your information.... ');
+            FB.api('/me', function (response) {
+                console.log('Successful login for: ' + response.name);
+                document.getElementById('status').innerHTML = 'Thanks for logging in, ' + response.name + '!';
+            });
+        }
+    </script>
+    
+</body>
+
+</html>
